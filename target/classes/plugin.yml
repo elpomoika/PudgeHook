@@ -1,8 +1,0 @@
-name: PudgeHook
-version: '1.0'
-main: me.elpomoika.pudgeHook.PudgeHook
-api-version: '1.18'
-authors: [elpomoika]
-commands:
-  pudge: {}
-
