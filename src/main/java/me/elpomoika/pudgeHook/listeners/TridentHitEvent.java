@@ -2,11 +2,8 @@ package me.elpomoika.pudgeHook.listeners;
 
 import me.elpomoika.pudgeHook.PudgeHook;
 import me.elpomoika.pudgeHook.item.utils.TridentUtils;
-import org.bukkit.Location;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Pig;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.Trident;
+import org.bukkit.Material;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.ProjectileHitEvent;
@@ -28,33 +25,52 @@ public class TridentHitEvent implements Listener {
             if (event.getHitEntity() instanceof Pig victim) {
                 if (tridentUtils.isCustomTrident(trident)) {
                     if (trident.getShooter() instanceof Player shooter) {
-                        magnetEntityToTrident(victim, trident, shooter);
+                        chainBehindTrident(trident, shooter);
+                        magnetVictimToShooter(victim, shooter);
                     }
                 }
             }
         }
     }
 
-    public void magnetEntityToTrident(Entity victim, Trident trident, Player shooter) {
+    public void magnetVictimToShooter(Entity victim, Player shooter) {
         new BukkitRunnable() {
             @Override
             public void run() {
-                if (victim.isDead() || trident.isDead()) {
+                if (victim.isDead() || shooter.isDead()) {
                     this.cancel();
                     return;
                 }
 
-                Location victimLocation = victim.getLocation();
-                Location tridentLocation = trident.getLocation();
+                Vector victimLocation = victim.getLocation().toVector();
+                Vector shooterLocation = shooter.getLocation().toVector();
 
-                Vector directionVictimToTrident = tridentLocation.toVector().subtract(victimLocation.toVector()).normalize();
+                Vector direction = shooterLocation.subtract(victimLocation);
 
-                victim.setVelocity(directionVictimToTrident.multiply(1.0));
-                System.out.println(victimLocation.distance(shooter.getLocation()));
+                Vector velocity = direction.normalize().multiply(1.0);
+                victim.setVelocity(velocity);
 
-                if (victimLocation.distanceSquared(shooter.getLocation()) < 1) {
+                if (victim.getLocation().distance(shooter.getLocation()) < 2) {
                     this.cancel();
+                    victim.setVelocity(direction.multiply(0));
                 }
+
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private void chainBehindTrident(Trident trident, Player shooter) {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+
+                BlockDisplay display = trident.getLocation().getWorld().spawn(trident.getLocation(), BlockDisplay.class, entity -> {
+                    entity.setBlock(Material.CHAIN.createBlockData());
+                    entity.setBillboard(Display.Billboard.FIXED);
+                    entity.setRotation(shooter.getBodyYaw(), 180f);
+                    entity.setGravity(false);
+                    entity.setPersistent(true);
+                });
             }
         }.runTaskTimer(plugin, 0L, 1L);
     }
